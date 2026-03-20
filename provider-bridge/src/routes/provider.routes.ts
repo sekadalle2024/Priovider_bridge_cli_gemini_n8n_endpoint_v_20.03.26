@@ -81,6 +81,15 @@ router.get('/providers', async (req: Request, res: Response) => {
           generate: 'POST /api/providers/n8n/generate',
         },
       },
+      {
+        id: 'n8n_processor',
+        name: 'N8N Processor',
+        description: 'Advanced N8N router with 15 processing cases',
+        available: n8nStatus.available,
+        endpoints: {
+          process: 'POST /api/providers/n8n/processor',
+        },
+      },
     ],
   });
 });
@@ -357,6 +366,40 @@ router.post('/providers/n8n/generate', optionalAuth, async (req: Request, res: R
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message, provider: 'n8n' });
+  }
+});
+
+/**
+ * POST /api/providers/n8n/processor
+ * Advanced n8n processor that routes based on keywords (Cases 1-15)
+ */
+router.post('/providers/n8n/processor', optionalAuth, async (req: Request, res: Response) => {
+  try {
+    const { message, options } = req.body;
+    if (!message) {
+      res.status(400).json({ error: 'No message provided' });
+      return;
+    }
+
+    const service = getN8nService();
+    const result = await service.process(message, {
+      timeout: options?.timeout,
+    });
+
+    if (req.user) {
+      await recordUsage({ userId: req.user.userId, provider: 'n8n_processor', model: result.model });
+    }
+
+    res.json({
+      model: result.model,
+      provider: 'n8n_processor',
+      created_at: new Date().toISOString(),
+      message: { role: 'assistant', content: result.text },
+      metadata: result.metadata,
+      done: true,
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message, provider: 'n8n_processor' });
   }
 });
 

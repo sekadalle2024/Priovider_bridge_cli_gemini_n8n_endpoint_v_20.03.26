@@ -6,7 +6,9 @@ Ce document liste tous les endpoints disponibles dans le serveur Provider Bridge
 
 ## 🌐 Serveur
 
-**URL de base** : `http://localhost:25809`
+**URL de base** : 
+- Local : `http://localhost:25809`
+- Production : `https://providerbridge.netlify.app`
 
 **Status** : ✅ En cours d'exécution
 
@@ -83,6 +85,27 @@ gemini auth login
 | Méthode | Endpoint | Description |
 |---------|----------|-------------|
 | POST | `/api/providers/kiro_cli/chat` | Chat via Kiro CLI |
+
+---
+
+### 4️⃣ N8N Processor (Advanced Router)
+
+**Base URL** : `http://localhost:25809/api/providers/n8n/processor`
+
+| Méthode | Endpoint | Description |
+|---------|----------|-------------|
+| POST | `/api/providers/n8n/processor` | Routage intelligent vers n8n (15 cas) |
+
+**Fonctionnement** :
+- Le serveur analyse le message pour déterminer le webhook n8n approprié.
+- Les réponses sont formatées avec des marqueurs pour le frontend (`__CIA_ACCORDION__`, etc.).
+
+**Exemple curl** :
+```bash
+curl -X POST http://localhost:25809/api/providers/n8n/processor \
+  -H "Content-Type: application/json" \
+  -d '{"message": "CIA Cours on auditing"}'
+```
 
 ---
 

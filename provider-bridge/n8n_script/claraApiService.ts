@@ -31,18 +31,166 @@ export class ClaraApiService {
   private recoveryService: TokenLimitRecoveryService;
   private stopExecution: boolean = false;
 
-  // n8n endpoint URL
-  //private n8nEndpoint = "http://localhost:5678/webhook/template";
-  //private n8nEndpoint = "https://barow52161.app.n8n.cloud/webhook/integration";
-   // private n8nEndpoint = "https://fetanif511.app.n8n.cloud/webhook-test/integration";
-    private n8nEndpoint = "https://fetanif511.app.n8n.cloud/webhook/integration";
-    //private n8nEndpoint = http://localhost:5678/webhook/htlm_processor"";
-  //  private n8nEndpoint = "http://localhost:5678/webhook/table";
-   //private n8nEndpoint = "http://localhost:5678/webhook/json";
- //private n8nEndpoint = "http://localhost:5678/webhook/cia";
- 
-   //private n8nEndpoint = "http://localhost:5678/webhook/htlm_processor";
+  // ── n8n endpoint par défaut (router switch-case) ─────────────────────────
+  // L'endpoint effectif est résolu dynamiquement dans getN8nEndpoint()
+  private readonly n8nDefaultEndpoint =
+    "https://j17rkv4c.rpcld.cc/webhook/template";
 
+  // Sentinelles internes retournées par le router pour les cas sans appel HTTP
+  private readonly SENTINEL_DATABASE = "__INTERNAL__DATABASE__";
+  private readonly SENTINEL_NOTIFICATION = "__INTERNAL__NOTIFICATION__";
+
+  /**
+   * Router n8n – Switch-case JavaScript
+   *
+   * Retourne l'URL de l'endpoint n8n à appeler, ou une sentinelle interne
+   * quand la réponse doit être construite localement (Case 5 & Case 8).
+   *
+   * Priorité des cas (ordre d'évaluation) :
+   *   Case 9  – contient "Document"
+   *   Case 10 – contient "Database"  (endpoint database dédié)
+   *   Case 2  – contient "[Integration]"
+   *   Case 3  – contient "n8n_doc"
+   *   Case 4  – contient "Htlm_processor"
+   *   Case 5  – contient "Database"  (table locale — pris avant Case 6)
+   *   Case 6  – contient "Algorithme"
+   *   Case 7  – contient "Visualisation"
+   *   Case 8  – ne contient pas "Command", "command" ou "/" → notification
+   *   Case 1  – défaut ("Standard" ou aucune autre condition)
+   */
+  private getN8nEndpoint(userMessage: string): string {
+    // Dériver un token normalisé pour les comparaisons
+    const msg = userMessage;
+
+    // Détermine la clé pour le switch :
+    // les cas sont évalués dans l'ordre via un helper séquentiel
+    let routeKey: string;
+
+    if (msg.includes("Document")) {
+      routeKey = "document";
+    } else if (msg.includes("Database")) {
+      // Case 10 (endpoint) a priorité sur Case 5 (table locale)
+      routeKey = "database_endpoint";
+    } else if (msg.includes("CIA") || msg.includes("cia") || msg.includes("Cia")) {
+      if (msg.includes("Cours") || msg.includes("COURS") || msg.includes("cours")) {
+        // Case 11 (CIA Cours)
+        routeKey = "cia_cours";
+      } else if (msg.includes("Qcm") || msg.includes("QCM") || msg.includes("Question")) {
+        // Case 12 (CIA Qcm)
+        routeKey = "cia_qcm";
+      } else if (msg.includes("Synthèse") || msg.includes("Synth")) {
+        // Case 14 (CIA Synthèse)
+        routeKey = "cia_synthese";
+      } else {
+        // CIA Générique (Fallback ou autre usage)
+        routeKey = "cia";
+      }
+    } else if (msg.includes("Methodologie") || msg.includes("Methodo") || msg.includes("Méthodologie")) {
+      // Case 13 (Méthodologie)
+      routeKey = "methodo";
+    } else if (msg.includes("Guide") || msg.includes("guide") || msg.includes("GUIDE")) {
+      // Case 15 (Guide)
+      routeKey = "guide";
+    } else if (msg.includes("[Integration]")) {
+      routeKey = "integration";
+    } else if (msg.includes("n8n_doc")) {
+      routeKey = "n8n_doc";
+    } else if (msg.includes("Htlm_processor")) {
+      routeKey = "htlm_processor";
+    } else if (msg.includes("Algorithme")) {
+      routeKey = "algorithme";
+    } else if (msg.includes("Visualisation")) {
+      routeKey = "visualisation";
+    } else if (
+      !msg.includes("Command") &&
+      !msg.includes("command") &&
+      !msg.includes("/")
+    ) {
+      routeKey = "notification";
+    } else {
+      routeKey = "default";
+    }
+
+    switch (routeKey) {
+      // ── Case 2 : [Integration] ──────────────────────────────────────────
+      case "integration":
+        console.log("🔀 Router → Case 2 : integration_windows");
+        return "https://j17rkv4c.rpcld.cc/webhook/integration_windows";
+
+      // ── Case 3 : n8n_doc ────────────────────────────────────────────────
+      case "n8n_doc":
+        console.log("🔀 Router → Case 3 : n8n_doc");
+        return "https://fpb7ab9h.rpcl.app/webhook/n8n_doc";
+
+      // ── Case 4 : Htlm_processor ─────────────────────────────────────────
+      case "htlm_processor":
+        console.log("🔀 Router → Case 4 : htlm_processor");
+        return "https://j17rkv4c.rpcld.cc/webhook/htlm_processor";
+
+      // ── Case 5 / Case 10 : Database ─────────────────────────────────────
+      // ── Case 10 : Database ─────────────────────────────────────
+      // Case 10 => endpoint HTTP dédié
+      case "database_endpoint":
+        console.log("🔀 Router → Case 10 : integration_database");
+        return "https://j17rkv4c.rpcld.cc/webhook/integration_database";
+
+      // ── Case 11 : CIA Cours ───────────────────────────────────────────────────
+      case "cia_cours":
+        console.log("🔀 Router → Case 11 : cia_cours_gemini");
+        return "http://localhost:5678/webhook/cia_cours_gemini";
+
+      // ── Case 12 : CIA QCM ─────────────────────────────────────────────────────
+      case "cia_qcm":
+        console.log("🔀 Router → Case 12 : qcm_cia_gemini");
+        return "http://localhost:5678/webhook/qcm_cia_gemini";
+
+      // ── Ancien Case 11 / CIA Générique ─────────────────────────────────────────
+      case "cia":
+        console.log("🔀 Router → Case CIA : integration_cia");
+        return "https://j17rkv4c.rpcld.cc/webhook/integration_cia";
+
+      // ── Case 13 : Méthodologie ────────────────────────────────────────────────
+      case "methodo":
+        console.log("🔀 Router → Case 13 : cia_methodo_gemini");
+        return "http://localhost:5678/webhook/cia_methodo_gemini";
+
+      // ── Case 14 : CIA Synthèse ───────────────────────────────────────────────
+      case "cia_synthese":
+        console.log("🔀 Router → Case 14 : synthese_cia_gemini");
+        return "http://localhost:5678/webhook/synthese_cia_gemini";
+
+      // ── Case 15 : Guide ──────────────────────────────────────────────────────
+      case "guide":
+        console.log("🔀 Router → Case 15 : guide_gemini");
+        return "http://localhost:5678/webhook/guide_gemini";
+
+      // ── Case 6 : Algorithme ─────────────────────────────────────────────
+      case "algorithme":
+        console.log("🔀 Router → Case 6 : algorithme");
+        return "https://j17rkv4c.rpcld.cc/webhook/algorithme";
+
+      // ── Case 7 : Visualisation ──────────────────────────────────────────
+      case "visualisation":
+        console.log("🔀 Router → Case 7 : visualisation");
+        return "https://j17rkv4c.rpcld.cc/webhook/visualisation";
+
+      // ── Case 8 : Notification locale ────────────────────────────────────
+      case "notification":
+        console.log("🔀 Router → Case 8 : notification locale (pas d'appel HTTP)");
+        return this.SENTINEL_NOTIFICATION;
+
+      // ── Case 9 : Document ───────────────────────────────────────────────
+      case "document":
+        console.log("🔀 Router → Case 9 : integration_document");
+        return "https://j17rkv4c.rpcld.cc/webhook/integration_document";
+
+      // ── Case 1 : défaut / Standard ──────────────────────────────────────
+      case "default":
+      default:
+        console.log("🔀 Router → Case 1 : template (défaut)");
+        return this.n8nDefaultEndpoint;
+    }
+  }
 
 
 
@@ -55,8 +203,8 @@ export class ClaraApiService {
 
     // Log pour confirmer l'initialisation
     console.log(
-      "✅ ClaraApiService initialisé avec endpoint:",
-      this.n8nEndpoint,
+      "✅ ClaraApiService initialisé avec endpoint par défaut:",
+      this.n8nDefaultEndpoint,
     );
     console.log("⏱️ Timeout configuré:", this.n8nTimeout / 1000, "secondes");
   }
@@ -91,7 +239,7 @@ export class ClaraApiService {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 secondes pour le test
 
-      const response = await fetch(this.n8nEndpoint, {
+      const response = await fetch(this.n8nDefaultEndpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -478,7 +626,7 @@ export class ClaraApiService {
    * Détecte et normalise le format de réponse n8n.
    * Cette fonction est conçue pour être robuste et supporter plusieurs formats de réponse.
    */
-  private normalizeN8nResponse(result: any): {
+  private normalizeN8nResponse(result: any, endpoint?: string): {
     content: string;
     metadata: any;
   } {
@@ -492,6 +640,78 @@ export class ClaraApiService {
       return {
         content: "",
         metadata: { error: "Empty response from n8n", format: "error" },
+      };
+    }
+
+    // ========================================================================
+    // FORMAT METHODO: CIA Methodo Accordion
+    // ========================================================================
+    if (
+      endpoint && endpoint.includes("methodo") &&
+      Array.isArray(result) &&
+      result.length > 0 &&
+      result[0] &&
+      typeof result[0] === "object" &&
+      "Sous-section" in result[0]
+    ) {
+      console.log('✅ FORMAT METHODO DETECTE: Réponse CIA Methodo (Etape mission - Methodo)');
+      const content = `__CIA_METHODO_ACCORDION__${JSON.stringify(result)}`;
+      console.log("🔍 === FIN ANALYSE (FORMAT METHODO) ===");
+      return {
+        content,
+        metadata: {
+          format: "cia_methodo_accordion",
+          timestamp: new Date().toISOString(),
+          totalSections: result.length,
+        },
+      };
+    }
+
+    // ========================================================================
+    // FORMAT 6: CIA QCM — Array with "Etape mission - CIA" containing tables
+    // ========================================================================
+    if (
+      Array.isArray(result) &&
+      result.length > 0 &&
+      result[0] &&
+      typeof result[0] === "object" &&
+      "Etape mission - CIA" in result[0]
+    ) {
+      console.log('✅ FORMAT 6 DETECTE: Réponse CIA QCM (Etape mission - CIA)');
+      const content = `__CIA_QCM_ACCORDION__${JSON.stringify(result)}`;
+      console.log("🔍 === FIN ANALYSE (FORMAT 6 - CIA QCM Accordion) ===");
+      return {
+        content,
+        metadata: {
+          format: "cia_qcm_accordion",
+          timestamp: new Date().toISOString(),
+          qcmGroupsCount: result[0]["Etape mission - CIA"].length,
+        },
+      };
+    }
+
+    // ========================================================================
+    // FORMAT 5: CIA — Array with "Sous-section" / "Sub-items" structure
+    // ========================================================================
+    if (
+      Array.isArray(result) &&
+      result.length > 0 &&
+      result[0] &&
+      typeof result[0] === "object" &&
+      "Sous-section" in result[0]
+    ) {
+      console.log(
+        '✅ FORMAT 5 DETECTE: Réponse CIA avec "Sous-section" / "Sub-items"',
+      );
+      const content = `__CIA_ACCORDION__${JSON.stringify(result)}`;
+      console.log("🔍 === FIN ANALYSE (FORMAT 5 - CIA Accordion) ===");
+      return {
+        content,
+        metadata: {
+          format: "cia_accordion",
+          timestamp: new Date().toISOString(),
+          totalSections: result.length,
+        },
       };
     }
 
@@ -619,16 +839,55 @@ export class ClaraApiService {
    */
   public async sendChatMessage(
     message: string,
-    config: ClaraAIConfig,
+    _config: ClaraAIConfig,
     attachments?: ClaraFileAttachment[],
-    systemPrompt?: string,
-    conversationHistory?: ClaraMessage[],
-    onContentChunk?: (content: string) => void,
+    _systemPrompt?: string,
+    _conversationHistory?: ClaraMessage[],
+    _onContentChunk?: (content: string) => void,
   ): Promise<ClaraMessage> {
+    // ── Router switch-case : résolution de l'endpoint ──────────────────────
+    // Déclaré hors du try pour rester accessible dans le catch
+    const resolvedEndpoint = this.getN8nEndpoint(message);
+
     try {
+
+      // ── Case 5 : Database – table locale avec lien cliquable ─────────────
+      // Note : Case 10 (database_endpoint) a priorité sur Case 5 dans le
+      // router, donc ce bloc ne peut être atteint que si on force la
+      // sentinelle SENTINEL_DATABASE manuellement (réservé à usage futur).
+      if (resolvedEndpoint === this.SENTINEL_DATABASE) {
+        const content =
+          "| Database |\n" +
+          "|----------|\n" +
+          "| [Ouvrir le formulaire Database](https://j17rkv4c.rpcld.cc/webhook/database) |";
+        return {
+          id: `${Date.now()}-database`,
+          role: "assistant",
+          content,
+          timestamp: new Date(),
+          metadata: { model: "local" },
+        };
+      }
+
+      // ── Case 8 : Notification locale ─────────────────────────────────────
+      if (resolvedEndpoint === this.SENTINEL_NOTIFICATION) {
+        const content =
+          "| Notification |\n" +
+          "|--------------|\n" +
+          '| Merci d\u2019ex\u00e9cuter les commandes pr\u00e9vues dans le \u00ab\u00a0Bouton d\u00e9marrer\u00a0\u00bb ou le Guide utilisateur. Le cas \u00e9ch\u00e9ant, se r\u00e9f\u00e9rer \u00e0 l\u2019\u00e9diteur de la suite E-audit. |';
+        return {
+          id: `${Date.now()}-notification`,
+          role: "assistant",
+          content,
+          timestamp: new Date(),
+          metadata: { model: "local" },
+        };
+      }
+
+      // ── Appel HTTP vers n8n ───────────────────────────────────────────────
       console.log(
         "🚀 Envoi de la requête vers n8n endpoint:",
-        this.n8nEndpoint,
+        resolvedEndpoint,
       );
       console.log("📝 Message original:", message);
       console.log("📎 Attachments:", attachments?.length || 0);
@@ -636,7 +895,7 @@ export class ClaraApiService {
 
       // Build structured payload for n8n
       let requestBody: any;
-      
+
       if (attachments && attachments.length > 0) {
         // Use the new structured format when attachments are present
         const structuredData = claraAttachmentService.formatDataForN8nStructured(message, attachments);
@@ -658,7 +917,7 @@ export class ClaraApiService {
 
       const startTime = Date.now();
 
-      const response = await fetch(this.n8nEndpoint, {
+      const response = await fetch(resolvedEndpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -701,7 +960,7 @@ export class ClaraApiService {
 
       // Normaliser la réponse selon son format
       console.log("🔄 Appel de normalizeN8nResponse...");
-      const { content, metadata } = this.normalizeN8nResponse(result);
+      const { content, metadata } = this.normalizeN8nResponse(result, resolvedEndpoint);
 
       console.log(`📊 === RESULTAT NORMALISATION ===`);
       console.log(`  Contenu extrait: ${content.length} caractères`);
@@ -728,7 +987,6 @@ export class ClaraApiService {
         timestamp: new Date(),
         metadata: {
           model: "n8n",
-          endpoint: this.n8nEndpoint,
           ...metadata,
         },
       };
@@ -771,11 +1029,11 @@ export class ClaraApiService {
         err.message.includes("NetworkError")
       ) {
         errorMessage = "🌐 Network error: Unable to connect to n8n endpoint.";
-        troubleshootingTips = `\n\n**Troubleshooting:**\n1. **CORS Issue**: Ensure n8n webhook has CORS enabled\n2. **Endpoint URL**: Verify endpoint is accessible: \`${this.n8nEndpoint}\`\n3. **Network**: Check your internet connection\n4. **n8n Status**: Verify n8n workflow is active\n\n**Technical Details:**\n- Endpoint: \`${this.n8nEndpoint}\`\n- Error: \`${err.message}\`\n\n**To Fix CORS in n8n:**\n- In your webhook node, set "Respond" > "Options" > "Response Headers"\n- Add header: \`Access-Control-Allow-Origin\` = \`*\` (or your domain)\n- Add header: \`Access-Control-Allow-Methods\` = \`POST, OPTIONS\`\n- Add header: \`Access-Control-Allow-Headers\` = \`Content-Type\``;
+        troubleshootingTips = `\n\n**Troubleshooting:**\n1. **CORS Issue**: Ensure n8n webhook has CORS enabled\n2. **Endpoint URL**: Verify endpoint is accessible: \`${resolvedEndpoint}\`\n3. **Network**: Check your internet connection\n4. **n8n Status**: Verify n8n workflow is active\n\n**Technical Details:**\n- Endpoint: \`${resolvedEndpoint}\`\n- Error: \`${err.message}\`\n\n**To Fix CORS in n8n:**\n- In your webhook node, set "Respond" > "Options" > "Response Headers"\n- Add header: \`Access-Control-Allow-Origin\` = \`*\` (or your domain)\n- Add header: \`Access-Control-Allow-Methods\` = \`POST, OPTIONS\`\n- Add header: \`Access-Control-Allow-Headers\` = \`Content-Type\``;
       } else if (err.message.includes("404")) {
         errorMessage =
           "🔍 Endpoint not found: The n8n webhook URL may be incorrect.";
-        troubleshootingTips = `\n\n**Check:**\n- Workflow is activated in n8n\n- Webhook path is correct: \`${this.n8nEndpoint}\``;
+        troubleshootingTips = `\n\n**Check:**\n- Workflow is activated in n8n\n- Webhook path is correct: \`${resolvedEndpoint}\``;
       } else if (
         err.message.includes("500") ||
         err.message.includes("502") ||
@@ -793,52 +1051,10 @@ export class ClaraApiService {
         content: `${errorMessage}${troubleshootingTips}\n\nPlease try again or contact support if the issue persists.`,
         timestamp: new Date(),
         metadata: {
-          error: `${err.message} (endpoint: ${this.n8nEndpoint})`,
+          error: `${err.message} (endpoint: ${resolvedEndpoint})`,
           errorType: err.name,
         },
       };
-    }
-  }
-
-  /**
-   * Ensure we're using the correct provider
-   */
-  private async ensureCorrectProvider(
-    config: ClaraAIConfig,
-    onContentChunk?: (content: string) => void,
-  ): Promise<void> {
-    const currentProvider = claraProviderService.getCurrentProvider();
-    if (
-      config.provider &&
-      (!currentProvider || currentProvider.id !== config.provider)
-    ) {
-      console.log(
-        `🔄 Switching provider from ${currentProvider?.id || "none"} to ${config.provider}`,
-      );
-      try {
-        const providers = await claraProviderService.getProviders();
-        const requestedProvider = providers.find(
-          (p) => p.id === config.provider,
-        );
-
-        if (requestedProvider) {
-          if (!requestedProvider.isEnabled) {
-            throw new Error(
-              `Provider ${requestedProvider.name} is not enabled`,
-            );
-          }
-          claraProviderService.updateProvider(requestedProvider);
-          console.log(`🚀 Switched to provider: ${requestedProvider.name}`);
-        } else {
-          throw new Error(`Provider ${config.provider} not found`);
-        }
-      } catch (error) {
-        console.error(
-          `❌ Failed to switch to provider ${config.provider}:`,
-          error,
-        );
-        throw error;
-      }
     }
   }
 

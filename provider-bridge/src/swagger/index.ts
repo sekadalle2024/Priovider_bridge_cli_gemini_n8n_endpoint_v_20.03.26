@@ -19,6 +19,7 @@ Centralized API gateway for **Gemini CLI**, **Gemini API Key Rotative**, and **K
 | \`gemini_cli\` | Google Gemini via CLI | Google OAuth |
 | \`gemini_api_key_rotative\` | Gemini API with key rotation | API Keys in .env |
 | \`kiro_cli\` | Amazon Kiro via CLI | CLI auth |
+| \`n8n_processor\` | Advanced N8N router | Internal / Optional Auth |
 
 ## OpenAI-Compatible — API Key Rotation
 
@@ -54,6 +55,7 @@ Base URL n8n : \`http://127.0.0.1:25809/cli\`
     { name: 'Gemini CLI', description: 'Gemini CLI provider' },
     { name: 'Gemini API Key', description: 'Gemini API Key Rotative' },
     { name: 'Kiro CLI', description: 'Kiro CLI provider' },
+    { name: 'N8N Processor', description: 'Advanced N8N router with 15 processing cases' },
     { name: 'OpenAI Compatible — API Key', description: 'OpenAI-compatible endpoints → Gemini API Key Rotation (base URL: http://127.0.0.1:25809/v1)' },
     { name: 'OpenAI Compatible — CLI', description: 'OpenAI-compatible endpoints → Gemini CLI OAuth, no API key consumed (base URL: http://127.0.0.1:25809/cli)' },
     { name: 'Common', description: 'Common endpoints' },
@@ -176,6 +178,33 @@ Base URL n8n : \`http://127.0.0.1:25809/cli\`
         },
         responses: { '200': { description: 'Chat response' } },
       },
+    },
+    '/api/providers/n8n/processor': {
+      post: {
+        tags: ['N8N Processor'],
+        summary: 'Process message via n8n router (15 cases)',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['message'],
+                properties: {
+                  message: { type: 'string', example: 'CIA Cours on auditing' },
+                  options: {
+                    type: 'object',
+                    properties: {
+                      timeout: { type: 'integer', example: 600000 }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        responses: { '200': { description: 'Processed response with markers' } }
+      }
     },
     '/v1/models': {
       get: {

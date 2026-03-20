@@ -22,7 +22,7 @@ Guide de navigation pour toute la documentation du projet Provider Bridge.
 |----------|-------------|------------|
 | [N8N_BASE_URLS.md](./N8N_BASE_URLS.md) | ⚡ URLs base pour n8n | Utilisateurs n8n |
 | [ENDPOINTS_SUMMARY.md](./ENDPOINTS_SUMMARY.md) | Résumé de tous les endpoints | Développeurs |
-| [GEMINI_CLI_OPENAI_ENDPOINTS.md](./GEMINI_CLI_OPENAI_ENDPOINTS.md) | Guide Gemini CLI OAuth | Utilisateurs Gemini CLI |
+| [Integration micro service n8n](./Integration%20micro%20service%20n8n/README.md) | 🚀 Guide complet d'intégration n8n | Micro-services / Frontend |
 | [Swagger UI](http://localhost:25809/docs) | Documentation interactive | Tous |
 
 ---
@@ -113,6 +113,20 @@ provider-bridge/
 
 **Endpoints** :
 - `POST /api/providers/kiro_cli/chat`
+
+---
+
+### 4. N8N Processor (Advanced)
+
+**Endpoints** :
+- `POST /api/providers/n8n/processor`
+
+**Avantages** :
+- ✅ 15 scénarios de routage (CIA, Document, etc.)
+- ✅ Traitement automatique des réponses
+- ✅ Support des marqueurs d'accordéon (Frontend)
+
+**Documentation** : [Integration micro service n8n](./Integration%20micro%20service%20n8n/README.md)
 
 ---
 
