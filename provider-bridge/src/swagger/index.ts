@@ -191,11 +191,11 @@ Base URL n8n : \`http://127.0.0.1:25809/cli\`
                 type: 'object',
                 required: ['message'],
                 properties: {
-                  message: { type: 'string', example: 'CIA Cours on auditing' },
+                  message: { type: 'string', example: "- [Command] = Programme de travail\n- [Processus] = inventaire de caisse\n- [Nb de lignes] = 25" },
                   options: {
                     type: 'object',
                     properties: {
-                      timeout: { type: 'integer', example: 600000 }
+                      timeout: { type: 'integer', example: 660000 }
                     }
                   }
                 }
