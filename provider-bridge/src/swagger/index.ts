@@ -48,7 +48,10 @@ Base URL n8n : \`http://127.0.0.1:25809/cli\`
       url: 'https://github.com/iOfficeAI/AionUi',
     },
   },
-  servers: [{ url: '/', description: 'Current server' }],
+  servers: [
+    { url: '/', description: 'Initial server (default)' },
+    { url: 'https://providerbridge.netlify.app', description: 'Production server (Netlify)' }
+  ],
   tags: [
     { name: 'Auth', description: 'Authentication endpoints' },
     { name: 'Admin', description: 'Admin dashboard endpoints' },
